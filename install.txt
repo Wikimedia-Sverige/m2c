@@ -1,0 +1,99 @@
+== INSTALL REQUIREMENTS
+
+pip install wheel
+pip install fastapi[all]
+pip install spacy
+
+== INSTALL SPACY LANGUAGE FILES
+
+python -m spacy download da_core_news_sm
+python -m spacy download en_core_web_sm
+python -m spacy download da_core_news_sm
+python -m spacy download fi_core_news_sm
+python -m spacy download fr_core_news_sm
+python -m spacy download de_core_news_sm
+python -m spacy download it_core_news_sm
+python -m spacy download nb_core_news_sm
+python -m spacy download pt_core_news_sm
+python -m spacy download es_core_news_sm
+python -m spacy download sv_core_news_sm
+
+== INSTALL SERVICE (tested on Ubuntu)
+
+cd /home/wikiapi/
+mkdir /app
+
+cd /home/wikiapi/app
+
+nano /home/wikiapi/app/gunicorn_conf.py
+
+# Bind to
+bind = 'localhost:8080'
+
+# Worker Options
+worker_class = 'uvicorn.workers.UvicornWorker'
+
+# Logging Options
+loglevel = 'debug'
+accesslog = '/home/wikiapi/app/access_log'
+errorlog =  '/home/wikiapi/app/error_log'
+
+exit nano
+
+nano /etc/systemd/system/wikiapi.service
+
+[Unit]
+Description=Gunicorn Daemon for Wikiapi Application
+After=network.target
+
+[Service]
+User=wikiapi
+Group=www-data
+WorkingDirectory=/home/wikiapi/app
+ExecStart=/usr/local/bin/gunicorn -c /home/wikiapi/app/gunicorn_conf.py main:app
+
+[Install]
+WantedBy=multi-user.target
+
+exit nano
+
+systemctl enable wikiapi
+systemctl start wikiapi
+systemctl status wikiapi
+
+curl 127.0.0.1:8080
+
+== INSTALL nginx
+
+apt install nginx
+
+sudo nano /etc/nginx/sites-available/wikiapi
+
+server {
+    listen 80;
+    server_name m2c.wikimedia.se;
+
+    location / {
+        proxy_pass http://127.0.0.1:8080;
+    }
+}
+
+ln -s /etc/nginx/sites-available/wikiapi /etc/nginx/sites-enabled/
+
+nginx -t
+
+systemctl reload nginx
+
+== INSTALL HTTPS VIA LETSENCRYPT
+
+apt install -y certbot python3-certbot-nginx
+
+certbot --nginx -d your_domain -d m2c.wikimedia.se
+
+certbot renew --dry-run
+
+== OR: INSTALL HTTPS VIA SELF-SIGNED CERT
+
+openssl genrsa -des3 -out domain.key 2048
+openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -sha256 -days 365 -nodes
+
