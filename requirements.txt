@@ -1,0 +1,3 @@
+fastapi==0.95.1
+spacy==3.5.2
+wheel==0.40.0
